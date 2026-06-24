@@ -61,7 +61,7 @@
                 <i class="bi bi-pin-angle-fill text-primary me-1" style="font-size: 11px"></i>
                 {{ n.title }}
               </td>
-              <td class="text-center text-muted small">{{ n.registerTime }}</td>
+              <td class="text-center text-muted small">{{ formatDate(n.registerTime) }}</td>
               <td v-if="auth.user?.userId === 'admin'" class="text-center">
                 <button
                   class="btn btn-sm btn-outline-danger py-0 px-2"
@@ -166,6 +166,12 @@ const loading = ref(true)
 const detailLoading = ref(false)
 const showWriteModal = ref(false)
 const writeForm = ref({ title: '', content: '' })
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return ''
+  // "2024-01-15 10:30:00" 또는 ISO 문자열에서 날짜(YYYY-MM-DD)만 추출
+  return String(value).slice(0, 10)
+}
 
 const NOTICES_PER_PAGE = 10
 const {

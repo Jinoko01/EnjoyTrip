@@ -118,14 +118,18 @@
             </button>
           </div>
           <div class="col-3">
-            <button class="btn btn-outline-secondary w-100" title="초기화" @click="resetSearch">
+            <button
+              class="btn btn-outline-secondary w-100"
+              title="현재 조건으로 새로고침"
+              @click="refreshSearch"
+            >
               <i class="bi bi-arrow-counterclockwise"></i>
             </button>
           </div>
         </div>
       </div>
 
-      <div id="trip-list" class="result-list">
+      <div v-if="!selectedSpot" id="trip-list" class="result-list">
         <template v-if="searchState === 'idle'">
           <div class="text-center p-5 text-muted">
             <i class="bi bi-search display-4 d-block mb-3"></i>
@@ -155,7 +159,7 @@
             v-for="(trip, i) in tripList"
             :key="i"
             class="result-item"
-            @click="focusTripOnMap(trip)"
+            @click="openSpotDetail(trip)"
           >
             <img
               :src="
@@ -173,6 +177,16 @@
           </div>
         </template>
       </div>
+      <SpotDetailPanel
+        v-else
+        :title="selectedSpot.title"
+        :image="selectedSpot.image"
+        :addr="selectedSpot.addr"
+        :lat="selectedSpot.lat"
+        :lng="selectedSpot.lng"
+        @close="closeSpotDetail"
+        @chargers-loaded="showChargerMarkers"
+      />
     </div>
     <aside v-else class="side-panel ai-timeline-panel">
       <div class="search-header">
@@ -227,6 +241,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { loadKakaoMapSdk } from '@/utils/kakaoMap'
 import AiPlanAssistant from '@/components/ai/AiPlanAssistant.vue'
 import SkeletonBox from '@/components/skeleton/SkeletonBox.vue'
+import SpotDetailPanel from '@/components/trip/SpotDetailPanel.vue'
+import type { NearbyCharger } from '@/api/tripInfo'
 import { saveAiPlan } from '@/composables/useAiPlanSave'
 import { DEFAULT_TOUR_REGION, TOUR_REGIONS } from '@/constants/tourRegions'
 
@@ -260,6 +276,7 @@ let markers: any[] = []
 let aiMarkers: any[] = []
 let customOverlay: any = null
 let aiPolyline: any = null
+let chargerMarkers: any[] = []
 let loadedAreaCode = '0'
 let loadedSigunguCode = ''
 let loadedAiTheme = ''
@@ -296,6 +313,13 @@ const activeAiDayItems = computed(
   () => aiPlan.value?.days.find((day: any) => day.day === activeAiDay.value)?.items ?? [],
 )
 const selectedAiPlace = ref<string | null>(null)
+const selectedSpot = ref<{
+  title: string
+  image?: string
+  addr: string
+  lat: number
+  lng: number
+} | null>(null)
 const isSavingAiPlan = ref(false)
 const isAiCandidateLoading = ref(false)
 const isInitializingRegion = ref(false)
@@ -613,7 +637,6 @@ function buildTrie(trips: any[]) {
   currentTrips.forEach((t) => {
     if (t.title) tripTrie.insert(t.title, t)
   })
-  keyword.value = ''
   acList.value = []
 }
 
@@ -665,6 +688,7 @@ async function handleSearch() {
   searchErrorMessage.value = ''
   try {
     const trips = await fetchTripList(areaCode, sigunguCode, contentTypeId)
+    console.warn('[TRIP_SEARCH_RESULT_COUNT]', trips.length)
     makeListAndMarkers(trips)
     loadedAreaCode = areaCode
     loadedSigunguCode = sigunguCode
@@ -816,6 +840,9 @@ function getTripCoordinates(trip: any) {
 
 function makeListAndMarkers(trips: any[]) {
   clearSearchMarkers()
+  // 새 검색 결과가 들어오면 열려 있던 관광지 상세와 충전소 마커를 정리한다.
+  selectedSpot.value = null
+  clearChargerMarkers()
   if (!trips || trips.length === 0) {
     tripList.value = []
     searchState.value = 'empty'
@@ -847,6 +874,7 @@ function makeListAndMarkers(trips: any[]) {
     '[TRIP_VALID_COORDS]',
     validCoords.map(({ trip, lat, lng }) => ({ title: trip.title, lat, lng })),
   )
+  console.warn('[TRIP_MARKER_DISPLAY_COUNT]', validCoords.length)
   console.warn('[TRIP_SET_BOUNDS_COUNT]', validCoords.length)
   if (validCoords.length === 1) {
     map.relayout()
@@ -877,6 +905,48 @@ function focusTripOnMap(trip: any) {
     markers.push(marker)
   }
   displayOverlay(marker, trip.title)
+}
+
+function openSpotDetail(trip: any) {
+  focusTripOnMap(trip)
+  const coordinates = getTripCoordinates(trip)
+  if (!coordinates) return
+  selectedSpot.value = {
+    title: trip.title,
+    image: trip.firstimage,
+    addr: trip.addr1 || '',
+    lat: coordinates.lat,
+    lng: coordinates.lng,
+  }
+}
+
+function closeSpotDetail() {
+  selectedSpot.value = null
+  clearChargerMarkers()
+}
+
+function clearChargerMarkers() {
+  chargerMarkers.forEach((marker) => marker.setMap(null))
+  chargerMarkers = []
+}
+
+function showChargerMarkers(chargers: NearbyCharger[]) {
+  clearChargerMarkers()
+  if (!map) return
+  chargers.forEach((charger) => {
+    const position = new (window as any).kakao.maps.LatLng(charger.lat, charger.lng)
+    const el = document.createElement('div')
+    el.className = 'charger-marker'
+    el.textContent = '⚡'
+    el.title = charger.statNm
+    const marker = new (window as any).kakao.maps.CustomOverlay({
+      position,
+      map,
+      yAnchor: 1,
+      content: el,
+    })
+    chargerMarkers.push(marker)
+  })
 }
 
 function showAiRoute(plan: any) {
@@ -941,6 +1011,9 @@ function setAiPlan(plan: any) {
   aiPlan.value = plan
   activeAiDay.value = plan.days?.[0]?.day ?? 1
   selectedAiPlace.value = plan.days?.[0]?.items?.[0]?.contentId ?? null
+  // AI 일정 모드로 전환할 때 열려 있던 관광지 상세와 충전소 마커를 정리한다.
+  selectedSpot.value = null
+  clearChargerMarkers()
   markers.forEach((marker) => marker.setMap(null))
   markers = []
   showAiRoute(plan)
@@ -999,28 +1072,26 @@ function displayOverlay(marker: any, title: string) {
   customOverlay.setMap(map)
 }
 
-function resetSearch() {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  keyword.value = ''
-  acList.value = []
-  selectedSidoName.value = ''
-  selectedArea.value = '0'
-  selectedSigungu.value = ''
-  selectedSigunguName.value = ''
-  selectedContentType.value = '0'
-  sigungus.value = []
-  clearSearchMarkers()
-  tripList.value = []
-  searchState.value = 'idle'
-  loadedAreaCode = '0'
-  loadedSigunguCode = ''
-  loadedAiTheme = ''
-  tripTrie = null
-  currentTrips = []
-  if (map) {
-    map.setCenter(new (window as any).kakao.maps.LatLng(37.5012743, 127.039585))
-    map.setLevel(7)
+async function refreshSearch() {
+  const areaCode = String(selectedArea.value ?? '').trim()
+  const currentRegion = TOUR_REGIONS.find((region) => region.areaCode === areaCode)
+
+  console.warn('[TRIP_REFRESH_SEARCH]', {
+    selectedAreaCode: selectedArea.value,
+    selectedSidoName: selectedSidoName.value,
+    selectedSigunguCode: selectedSigungu.value,
+    selectedSigunguName: selectedSigunguName.value,
+    selectedCategory: selectedContentType.value,
+    searchKeyword: keyword.value,
+  })
+
+  if (!currentRegion) {
+    await applyRegion(DEFAULT_TOUR_REGION.name)
+    return
   }
+
+  selectedSidoName.value = currentRegion.name
+  await handleSearch()
 }
 
 function initMap() {
@@ -1368,6 +1439,18 @@ onUnmounted(() => {
   background: transparent;
   border-color: #d3dfea;
   color: #607286;
+}
+:deep(.charger-marker) {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #16a34a;
+  font-size: 14px;
+  box-shadow: 0 2px 6px #14532d55;
+  transform: translateY(-4px);
 }
 .map-error {
   position: absolute;

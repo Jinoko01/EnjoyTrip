@@ -2,7 +2,7 @@ import axios from 'axios'
 import {
   getAccessToken,
   getRefreshToken,
-  setAccessToken,
+  setTokens,
   clearAuthStorage,
 } from '@/utils/authStorage'
 
@@ -62,7 +62,8 @@ api.interceptors.response.use(
     try {
       const res = await axios.post(`${apiBaseUrl}/api/auth/refresh`, { refreshToken })
       const newAccessToken: string = res.data.accessToken
-      setAccessToken(newAccessToken)
+      const newRefreshToken: string = res.data.refreshToken || refreshToken
+      setTokens(newAccessToken, newRefreshToken)
 
       waitQueue.forEach((cb) => cb(newAccessToken))
       waitQueue = []
