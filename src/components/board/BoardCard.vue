@@ -28,7 +28,8 @@ const date = computed(() => toDateOnly(props.board.registerTime))
     @keydown.enter="emit('select', board.boardNo)"
   >
     <div class="board-card__thumb" :style="{ background: thumbnail }">
-      <i class="bi bi-card-image" aria-hidden="true"></i>
+      <img v-if="board.coverImage" :src="board.coverImage" alt="" class="board-card__img" />
+      <i v-else class="bi bi-card-image" aria-hidden="true"></i>
       <span class="board-card__badge" :style="{ color: badge.color, background: badge.background }">
         {{ board.category }}
       </span>
@@ -83,6 +84,11 @@ const date = computed(() => toDateOnly(props.board.registerTime))
   justify-content: center;
   color: rgba(255, 255, 255, 0.65);
   font-size: 1.6rem;
+}
+.board-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .board-card__badge {
   position: absolute;

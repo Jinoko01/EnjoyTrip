@@ -22,6 +22,8 @@ export interface Board {
   liked?: boolean
   scheduleId?: number | null
   linkedSchedule?: LinkedSchedule | null
+  coverImage?: string | null // 대표(첫) 사진 — 목록 썸네일용
+  imageUrls?: string[] // 상세 조회 시의 전체 사진 목록
 }
 
 /** 화면 표시용 파생 카테고리를 더한 게시글 */

@@ -8,7 +8,12 @@ import type { BoardListItem } from '@/types/board'
 const props = defineProps<{ board: BoardListItem }>()
 const emit = defineEmits<{ (e: 'select', boardNo: number): void }>()
 
-const cover = computed(() => placeholderGradient(props.board.boardNo))
+// 대표 사진이 있으면 이미지를, 없으면 색상 그라데이션을 커버 배경으로 쓴다.
+const cover = computed(() =>
+  props.board.coverImage
+    ? `center / cover no-repeat url("${props.board.coverImage}")`
+    : placeholderGradient(props.board.boardNo),
+)
 const excerpt = computed(() => toExcerpt(props.board.content, 110))
 </script>
 

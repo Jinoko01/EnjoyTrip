@@ -31,7 +31,14 @@ let commentSeq = 0
 
 const category = computed(() => deriveBoardCategory(boardNo))
 const badge = computed(() => categoryBadge(category.value))
-const cover = computed(() => placeholderGradient(boardNo))
+const images = computed(() => board.value?.imageUrls ?? [])
+// 첫 사진을 커버로, 나머지는 본문 아래 갤러리로. 사진이 없으면 색상 플레이스홀더.
+const cover = computed(() =>
+  images.value.length
+    ? `center / cover no-repeat url("${images.value[0]}")`
+    : placeholderGradient(boardNo),
+)
+const galleryImages = computed(() => images.value.slice(1))
 const date = computed(() => toDateOnly(board.value?.registerTime))
 const isAuthor = computed(() => !!auth.user && auth.user.userId === board.value?.userId)
 const linkedSchedule = computed(() => board.value?.linkedSchedule ?? null)
@@ -164,6 +171,10 @@ onMounted(async () => {
     </div>
 
     <article class="bd-content">{{ board.content }}</article>
+
+    <div v-if="galleryImages.length" class="bd-gallery">
+      <img v-for="(src, i) in galleryImages" :key="i" :src="src" alt="" class="bd-gallery__img" />
+    </div>
 
     <!-- 연결된 일정 -->
     <button v-if="linkedSchedule" type="button" class="bd-schedule" @click="openLinkedSchedule">
@@ -340,6 +351,20 @@ onMounted(async () => {
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.bd-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.bd-gallery__img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--et-gray-100);
 }
 
 .bd-schedule {

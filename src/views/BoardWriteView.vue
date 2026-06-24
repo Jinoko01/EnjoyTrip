@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api'
 import { useSchedules, type Schedule } from '@/composables/useSchedules'
@@ -28,9 +28,41 @@ const sharedSchedule = ref<LinkedSchedule | null>(null)
 const submitting = ref(false)
 const pickerOpen = ref(false)
 
+const MAX_IMAGES = 5
+// 수정 시 유지할 기존 사진(URL)과, 새로 추가한 파일을 따로 관리한다(표시는 기존 → 신규 순).
+const existingImages = ref<string[]>([])
+const newFiles = ref<File[]>([])
+const newPreviews = ref<string[]>([])
+
+const totalImages = computed(() => existingImages.value.length + newFiles.value.length)
+const imageSlotsLeft = computed(() => MAX_IMAGES - totalImages.value)
+
 const { schedules, loading: schedulesLoading } = useSchedules()
 
 const canSubmit = computed(() => form.value.title.trim() !== '' && form.value.content.trim() !== '')
+
+function onImageChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files ? Array.from(input.files) : []
+  input.value = '' // 같은 파일 재선택 시에도 change가 발생하도록 비운다.
+  for (const file of files) {
+    if (totalImages.value >= MAX_IMAGES) break
+    newFiles.value.push(file)
+    newPreviews.value.push(URL.createObjectURL(file))
+  }
+}
+
+function removeExistingImage(index: number) {
+  existingImages.value.splice(index, 1)
+}
+
+function removeNewImage(index: number) {
+  URL.revokeObjectURL(newPreviews.value[index])
+  newFiles.value.splice(index, 1)
+  newPreviews.value.splice(index, 1)
+}
+
+onBeforeUnmount(() => newPreviews.value.forEach((url) => URL.revokeObjectURL(url)))
 
 function goBack() {
   if (isEdit.value) router.push(`/board/${editBoardNo.value}`)
@@ -48,20 +80,27 @@ function selectSchedule(schedule: Schedule) {
   pickerOpen.value = false
 }
 
+function buildFormData() {
+  const fd = new FormData()
+  fd.append('title', form.value.title.trim())
+  fd.append('content', form.value.content.trim())
+  if (sharedSchedule.value) fd.append('scheduleId', String(sharedSchedule.value.scheduleId))
+  // 사진은 다중 파트(multipart)로 전송한다. 수정 시 유지할 기존 사진은 keepImageUrls로 보낸다.
+  if (isEdit.value) existingImages.value.forEach((url) => fd.append('keepImageUrls', url))
+  newFiles.value.forEach((file) => fd.append('images', file))
+  return fd
+}
+
 async function submit() {
   if (!canSubmit.value || submitting.value) return
   submitting.value = true
-  const payload = {
-    title: form.value.title.trim(),
-    content: form.value.content.trim(),
-    scheduleId: sharedSchedule.value?.scheduleId ?? null,
-  }
+  const config = { headers: { 'Content-Type': 'multipart/form-data' } }
   try {
     if (isEdit.value) {
-      await api.put(`/board/${editBoardNo.value}`, payload)
+      await api.put(`/board/${editBoardNo.value}`, buildFormData(), config)
       router.push(`/board/${editBoardNo.value}`)
     } else {
-      await api.post('/board', payload)
+      await api.post('/board', buildFormData(), config)
       router.push('/board')
     }
   } catch {
@@ -78,6 +117,7 @@ onMounted(async () => {
     form.value = { title: res.data.title, content: res.data.content ?? '' }
     category.value = deriveBoardCategory(res.data.boardNo)
     sharedSchedule.value = res.data.linkedSchedule ?? null
+    existingImages.value = res.data.imageUrls ?? []
   } catch {
     alert('게시글을 불러오지 못했습니다.')
     router.replace('/board')
@@ -146,11 +186,55 @@ onMounted(async () => {
       </div>
 
       <div class="bw-field">
-        <span class="bw-label">사진 첨부</span>
-        <div class="bw-dropzone" aria-disabled="true">
+        <span class="bw-label">
+          사진 첨부 <span class="bw-optional">(선택, 최대 {{ MAX_IMAGES }}장)</span>
+        </span>
+
+        <label class="bw-dropzone" :class="{ 'is-disabled': imageSlotsLeft <= 0 }">
           <i class="bi bi-images"></i>
-          <span>사진 업로드는 준비 중이에요</span>
+          <span v-if="imageSlotsLeft > 0"
+            >사진을 선택해 업로드 ({{ imageSlotsLeft }}장 더 가능)</span
+          >
+          <span v-else>최대 {{ MAX_IMAGES }}장까지 첨부할 수 있어요</span>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            class="bw-file-input"
+            :disabled="imageSlotsLeft <= 0"
+            @change="onImageChange"
+          />
+        </label>
+
+        <div v-if="totalImages > 0" class="bw-previews">
+          <div v-for="(src, i) in existingImages" :key="`exist-${i}`" class="bw-preview">
+            <img :src="src" alt="첨부 사진" />
+            <span v-if="i === 0" class="bw-preview__badge">대표</span>
+            <button
+              type="button"
+              class="bw-preview__remove"
+              aria-label="사진 제거"
+              @click="removeExistingImage(i)"
+            >
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <div v-for="(src, i) in newPreviews" :key="`new-${i}`" class="bw-preview">
+            <img :src="src" alt="미리보기" />
+            <span v-if="existingImages.length === 0 && i === 0" class="bw-preview__badge"
+              >대표</span
+            >
+            <button
+              type="button"
+              class="bw-preview__remove"
+              aria-label="사진 제거"
+              @click="removeNewImage(i)"
+            >
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
         </div>
+        <p class="bw-hint">첫 번째 사진이 대표 이미지(목록 썸네일)로 사용됩니다.</p>
       </div>
 
       <div class="bw-field">
@@ -300,9 +384,83 @@ onMounted(async () => {
   color: var(--text-muted);
   font-size: 0.875rem;
   text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.bw-dropzone:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+.bw-dropzone.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.bw-dropzone.is-disabled:hover {
+  border-color: var(--border-strong);
+  color: var(--text-muted);
 }
 .bw-dropzone i {
   font-size: 1.4rem;
+}
+.bw-file-input {
+  display: none;
+}
+
+.bw-previews {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.bw-preview {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--et-gray-100);
+}
+.bw-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bw-preview__badge {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.bw-preview__remove {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(25, 31, 40, 0.6);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.bw-preview__remove:hover {
+  background: var(--et-sale-500);
+}
+
+.bw-hint {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .bw-share-btn {

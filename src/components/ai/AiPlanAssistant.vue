@@ -15,7 +15,15 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   planCreated: [plan: Plan]
-  regionSelected: [selection: { regionName: string; sigunguCode?: string; sigunguName?: string; theme: string; pace: string }]
+  regionSelected: [
+    selection: {
+      regionName: string
+      sigunguCode?: string
+      sigunguName?: string
+      theme: string
+      pace: string
+    },
+  ]
 }>()
 const router = useRouter()
 
@@ -51,7 +59,10 @@ const activeDay = ref(1)
 const sigunguOptions = computed(() => props.sigunguOptions ?? [])
 
 const canSubmit = computed(
-  () => Boolean(region.value && duration.value && theme.value && pace.value) && !isLoading.value && !props.isCandidatesLoading,
+  () =>
+    Boolean(region.value && duration.value && theme.value && pace.value) &&
+    !isLoading.value &&
+    !props.isCandidatesLoading,
 )
 
 watch(
@@ -96,9 +107,8 @@ function handleRegionChange() {
 }
 
 function handleSigunguChange() {
-  selectedSigunguName.value = sigunguOptions.value.find(
-    (item) => String(item.code) === selectedSigunguCode.value,
-  )?.name ?? ''
+  selectedSigunguName.value =
+    sigunguOptions.value.find((item) => String(item.code) === selectedSigunguCode.value)?.name ?? ''
   console.warn('[AI_PLAN_SIGUNGU_CHANGE]', {
     region: region.value,
     sigunguCode: selectedSigunguCode.value,
@@ -109,13 +119,21 @@ function handleSigunguChange() {
 
 function handleThemeChange(nextTheme: string) {
   theme.value = nextTheme
-  console.warn('[AI_PLAN_STYLE_CHANGE]', { theme: theme.value, pace: pace.value, style: style.value })
+  console.warn('[AI_PLAN_STYLE_CHANGE]', {
+    theme: theme.value,
+    pace: pace.value,
+    style: style.value,
+  })
   emitRegionSelection()
 }
 
 function handlePaceChange(nextPace: string) {
   pace.value = nextPace
-  console.warn('[AI_PLAN_STYLE_CHANGE]', { theme: theme.value, pace: pace.value, style: style.value })
+  console.warn('[AI_PLAN_STYLE_CHANGE]', {
+    theme: theme.value,
+    pace: pace.value,
+    style: style.value,
+  })
   emitRegionSelection()
 }
 
@@ -219,9 +237,19 @@ async function savePlan() {
           </select></label
         >
         <label
-          >시/군/구<select v-model="selectedSigunguCode" :disabled="sigunguOptions.length === 0 || props.isCandidatesLoading" @change="handleSigunguChange">
-            <option value="">{{ props.isCandidatesLoading ? '불러오는 중...' : '시/군/구 전체' }}</option>
-            <option v-for="option in sigunguOptions" :key="option.code" :value="String(option.code)">
+          >시/군/구<select
+            v-model="selectedSigunguCode"
+            :disabled="sigunguOptions.length === 0 || props.isCandidatesLoading"
+            @change="handleSigunguChange"
+          >
+            <option value="">
+              {{ props.isCandidatesLoading ? '불러오는 중...' : '시/군/구 전체' }}
+            </option>
+            <option
+              v-for="option in sigunguOptions"
+              :key="option.code"
+              :value="String(option.code)"
+            >
               {{ option.name }}
             </option>
           </select></label
@@ -241,7 +269,16 @@ async function savePlan() {
         <fieldset>
           <legend>여행 테마</legend>
           <button
-            v-for="option in ['맛집', '관광·명소', '문화·역사', '자연·힐링', '레포츠·액티비티', '쇼핑', '축제·공연', '카페·핫플']"
+            v-for="option in [
+              '맛집',
+              '관광·명소',
+              '문화·역사',
+              '자연·힐링',
+              '레포츠·액티비티',
+              '쇼핑',
+              '축제·공연',
+              '카페·핫플',
+            ]"
             :key="option"
             type="button"
             :class="{ selected: theme === option }"

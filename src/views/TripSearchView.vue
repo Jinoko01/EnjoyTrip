@@ -1,6 +1,16 @@
 <template>
   <div id="map-container">
-    <AiPlanAssistant v-if="!aiPlan" :candidates="tripList" :initial-region="selectedRegionName" :initial-sigungu-code="selectedSigungu" :initial-sigungu-name="selectedSigunguName" :sigungu-options="sigungus" :is-candidates-loading="isAiCandidateLoading" @plan-created="setAiPlan" @region-selected="handleAiRegionSelected" />
+    <AiPlanAssistant
+      v-if="!aiPlan"
+      :candidates="tripList"
+      :initial-region="selectedRegionName"
+      :initial-sigungu-code="selectedSigungu"
+      :initial-sigungu-name="selectedSigunguName"
+      :sigungu-options="sigungus"
+      :is-candidates-loading="isAiCandidateLoading"
+      @plan-created="setAiPlan"
+      @region-selected="handleAiRegionSelected"
+    />
     <div id="map" ref="mapEl"></div>
     <div v-if="mapLoadError" class="map-error">{{ mapLoadError }}</div>
 
@@ -77,9 +87,15 @@
             </select>
           </div>
           <div class="col-12">
-            <select v-model="selectedSigungu" class="form-select border-0 shadow-sm bg-light" @change="onSigunguChange">
+            <select
+              v-model="selectedSigungu"
+              class="form-select border-0 shadow-sm bg-light"
+              @change="onSigunguChange"
+            >
               <option value="">시/군/구 (법정동) 선택</option>
-              <option v-for="s in sigungus" :key="s.code" :value="String(s.code)">{{ s.name }}</option>
+              <option v-for="s in sigungus" :key="s.code" :value="String(s.code)">
+                {{ s.name }}
+              </option>
             </select>
           </div>
           <div class="col-12">
@@ -369,7 +385,9 @@ async function fetchTripList(areaCode: string, sigunguCode: string, contentTypeI
 }
 
 function mergeUniqueTrips(target: any[], source: any[]) {
-  const known = new Set(target.map((item) => String(item.contentid ?? item.contentId ?? item.title)))
+  const known = new Set(
+    target.map((item) => String(item.contentid ?? item.contentId ?? item.title)),
+  )
   source.forEach((item) => {
     const key = String(item.contentid ?? item.contentId ?? item.title)
     if (!known.has(key)) {
@@ -609,9 +627,8 @@ async function onAreaChange() {
 }
 
 function onSigunguChange() {
-  selectedSigunguName.value = sigungus.value.find(
-    (option) => String(option.code) === selectedSigungu.value,
-  )?.name ?? ''
+  selectedSigunguName.value =
+    sigungus.value.find((option) => String(option.code) === selectedSigungu.value)?.name ?? ''
 }
 
 async function handleSearch() {
@@ -662,7 +679,13 @@ async function handleSearch() {
   }
 }
 
-async function handleAiRegionSelected(selection: { regionName: string; sigunguCode?: string; sigunguName?: string; theme: string; pace: string }) {
+async function handleAiRegionSelected(selection: {
+  regionName: string
+  sigunguCode?: string
+  sigunguName?: string
+  theme: string
+  pace: string
+}) {
   const applied = await applyRegion(selection.regionName, {
     sigunguCode: selection.sigunguCode,
     sigunguName: selection.sigunguName,
@@ -714,7 +737,9 @@ async function applyRegion(
     if (normalizedSigunguCode) {
       selectedSigungu.value = normalizedSigunguCode
       selectedSigunguName.value =
-        sigunguName || sigungus.value.find((option) => String(option.code) === normalizedSigunguCode)?.name || ''
+        sigunguName ||
+        sigungus.value.find((option) => String(option.code) === normalizedSigunguCode)?.name ||
+        ''
     }
     if (theme) {
       const trips = await fetchAiThemeCandidates(region.areaCode, normalizedSigunguCode, theme)
