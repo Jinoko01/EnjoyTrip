@@ -18,12 +18,17 @@
       <button
         class="navbar-toggler"
         type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarResponsive"
+        :aria-expanded="menuOpen"
+        aria-controls="navbarResponsive"
+        aria-label="메뉴 열기"
+        @click="menuOpen = !menuOpen"
       >
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div id="navbarResponsive" class="collapse navbar-collapse">
+      <div id="navbarResponsive" class="collapse navbar-collapse" :class="{ show: menuOpen }">
+        <button class="drawer-close" type="button" aria-label="메뉴 닫기" @click="menuOpen = false">
+          <i class="bi bi-x-lg"></i>
+        </button>
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
           <li class="nav-item">
             <RouterLink class="nav-link" to="/attraction">여행지</RouterLink>
@@ -62,25 +67,48 @@
         </ul>
       </div>
     </div>
+
+    <div v-if="menuOpen" class="nav-backdrop" @click="menuOpen = false"></div>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const scrolled = ref(false)
 const searchKeyword = ref('')
+const menuOpen = ref(false)
+
+const MOBILE_NAV_MAX_WIDTH = 992
 
 function onScroll() {
   scrolled.value = window.scrollY > 50
 }
 
+// 라우트가 바뀌면 모바일 드로어를 닫는다.
+watch(
+  () => route.fullPath,
+  () => {
+    menuOpen.value = false
+  },
+)
+
+// 드로어가 열려 있는 동안에는 모바일에서 배경 스크롤을 잠근다.
+watch(menuOpen, (open) => {
+  const isMobile = window.innerWidth < MOBILE_NAV_MAX_WIDTH
+  document.body.style.overflow = open && isMobile ? 'hidden' : ''
+})
+
 onMounted(() => window.addEventListener('scroll', onScroll))
-onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+  document.body.style.overflow = ''
+})
 
 async function handleLogout() {
   await auth.logout()

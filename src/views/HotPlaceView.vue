@@ -929,12 +929,52 @@ onMounted(async () => {
     width: auto;
   }
 
+  /* 모바일: 카드 그리드를 가로형 리스트로 전환 */
   .hotplace-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .hotplace-card {
+    flex-direction: row;
+    align-items: stretch;
   }
 
   .hotplace-image-wrap {
-    height: 220px;
+    width: 118px;
+    height: auto;
+    flex: 0 0 118px;
+  }
+
+  .hotplace-card-body {
+    min-width: 0;
+    padding: 11px 13px;
+  }
+
+  .hotplace-badges {
+    margin-bottom: 6px;
+  }
+
+  .hotplace-title {
+    margin-bottom: 4px;
+    font-size: 0.97rem;
+  }
+
+  .hotplace-description {
+    min-height: 0;
+    margin-bottom: 10px;
+    -webkit-line-clamp: 2;
+    font-size: 0.8rem;
+  }
+
+  .hotplace-heart {
+    top: 8px;
+    right: 8px;
+    font-size: 1.2rem;
+  }
+
+  .hotplace-meta {
+    padding-top: 10px;
   }
 }
 

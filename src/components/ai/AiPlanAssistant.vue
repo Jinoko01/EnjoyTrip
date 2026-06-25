@@ -12,6 +12,7 @@ const props = defineProps<{
   initialSigunguName?: string
   sigunguOptions?: any[]
   isCandidatesLoading?: boolean
+  sheetExpanded?: boolean
 }>()
 const emit = defineEmits<{
   planCreated: [plan: Plan]
@@ -211,7 +212,12 @@ async function savePlan() {
 </script>
 
 <template>
-  <button class="assistant-trigger" type="button" @click="openAssistant">
+  <button
+    class="assistant-trigger"
+    :class="{ 'trigger-hidden': sheetExpanded }"
+    type="button"
+    @click="openAssistant"
+  >
     <i class="bi bi-stars"></i> AI 일정 비서
   </button>
 
@@ -347,12 +353,28 @@ async function savePlan() {
   font-weight: 800;
   box-shadow: 0 8px 22px #006fc455;
 }
+/* 하단 시트를 펼치면 지도 위 버튼은 숨긴다 */
+.assistant-trigger.trigger-hidden {
+  display: none;
+}
+/* 모바일: 하단 시트 바로 위(지도 영역)에 떠 있도록 배치 */
+@media (max-width: 767.98px) {
+  .assistant-trigger {
+    top: auto;
+    right: 12px;
+    bottom: calc(50vh + 14px);
+    padding: 10px 15px;
+    font-size: 13px;
+  }
+}
 .assistant-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  /* 모달은 sticky 헤더(z-index 1030)보다 위에 떠야 한다 */
+  z-index: 1050;
   display: grid;
   place-items: center;
+  padding: 16px;
   background: #10213173;
   backdrop-filter: blur(3px);
 }

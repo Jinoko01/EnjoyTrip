@@ -188,4 +188,27 @@ onMounted(loadNews)
   border-color: transparent !important;
   box-shadow: var(--shadow-lg) !important;
 }
+
+/* 모바일: 큼직한 카드 대신 촘촘한 리스트로 표시 */
+@media (max-width: 767.98px) {
+  .row.g-4 {
+    --bs-gutter-y: 0.625rem;
+  }
+  .news-card .card-body {
+    padding: 14px 16px !important;
+  }
+  .news-card .card-title {
+    margin-bottom: 6px !important;
+    font-size: 0.95rem;
+  }
+  .news-card .card-text {
+    margin-bottom: 0;
+    font-size: 0.8rem;
+    -webkit-line-clamp: 2 !important;
+  }
+  .news-card .border-top {
+    margin-top: 12px !important;
+    padding-top: 12px !important;
+  }
+}
 </style>

@@ -1,7 +1,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/api'
 import { usePagination } from '@/composables/usePagination'
-import { deriveBoardCategory, type BoardCategoryFilter } from '@/utils/boardPresentation'
+import { normalizeBoardCategory, type BoardCategoryFilter } from '@/utils/boardPresentation'
 import type { Board, BoardListItem } from '@/types/board'
 
 const BOARDS_PER_PAGE = 8
@@ -17,7 +17,7 @@ export function useBoardList(initialKeyword = '') {
   const searchKeyword = ref(initialKeyword)
   const activeCategory = ref<BoardCategoryFilter>('전체')
 
-  // 화면 표시용 카테고리를 더한 목록 (저장되지 않는 프론트 전용 파생값)
+  // 카테고리를 정규화해 더한 목록 (백엔드 값 검증용)
   const items = ref<BoardListItem[]>([])
 
   // 카테고리 → 검색어 순으로 좁혀 나간다.
@@ -58,7 +58,7 @@ export function useBoardList(initialKeyword = '') {
     loading.value = true
     try {
       const res = await api.get<Board[]>('/board')
-      items.value = res.data.map((b) => ({ ...b, category: deriveBoardCategory(b.boardNo) }))
+      items.value = res.data.map((b) => ({ ...b, category: normalizeBoardCategory(b.category) }))
     } finally {
       loading.value = false
     }

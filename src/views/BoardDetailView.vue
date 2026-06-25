@@ -9,7 +9,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import SkeletonBox from '@/components/skeleton/SkeletonBox.vue'
 import {
   categoryBadge,
-  deriveBoardCategory,
+  normalizeBoardCategory,
   placeholderGradient,
   toDateOnly,
 } from '@/utils/boardPresentation'
@@ -29,7 +29,7 @@ const { liked, likeCount, syncFrom, toggleLike } = useReactions('/board', boardN
 const comments = ref<CommentItem[]>([])
 let commentSeq = 0
 
-const category = computed(() => deriveBoardCategory(boardNo))
+const category = computed(() => normalizeBoardCategory(board.value?.category))
 const badge = computed(() => categoryBadge(category.value))
 const images = computed(() => board.value?.imageUrls ?? [])
 // 첫 사진을 커버로, 나머지는 본문 아래 갤러리로. 사진이 없으면 색상 플레이스홀더.

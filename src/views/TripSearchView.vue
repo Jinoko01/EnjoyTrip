@@ -8,13 +8,21 @@
       :initial-sigungu-name="selectedSigunguName"
       :sigungu-options="sigungus"
       :is-candidates-loading="isAiCandidateLoading"
+      :sheet-expanded="isSheetExpanded"
       @plan-created="setAiPlan"
       @region-selected="handleAiRegionSelected"
     />
     <div id="map" ref="mapEl"></div>
     <div v-if="mapLoadError" class="map-error">{{ mapLoadError }}</div>
 
-    <div v-if="!aiPlan" class="side-panel">
+    <div v-if="!aiPlan" class="side-panel" :class="{ 'sheet-expanded': isSheetExpanded }">
+      <button
+        type="button"
+        class="sheet-handle"
+        :aria-expanded="isSheetExpanded"
+        aria-label="패널 펼치기/접기"
+        @click="isSheetExpanded = !isSheetExpanded"
+      ></button>
       <div class="search-header">
         <h5 class="fw-bold mb-3">
           <i class="bi bi-geo-alt-fill text-primary me-2"></i>관광지 검색
@@ -188,7 +196,18 @@
         @chargers-loaded="showChargerMarkers"
       />
     </div>
-    <aside v-else class="side-panel ai-timeline-panel">
+    <aside
+      v-else
+      class="side-panel ai-timeline-panel"
+      :class="{ 'sheet-expanded': isSheetExpanded }"
+    >
+      <button
+        type="button"
+        class="sheet-handle"
+        :aria-expanded="isSheetExpanded"
+        aria-label="패널 펼치기/접기"
+        @click="isSheetExpanded = !isSheetExpanded"
+      ></button>
       <div class="search-header">
         <h5 class="fw-bold mb-1"><i class="bi bi-stars text-primary me-2"></i>AI 일정</h5>
         <p class="ai-plan-summary">{{ aiPlan.summary }}</p>
@@ -321,6 +340,8 @@ const selectedSpot = ref<{
   lng: number
 } | null>(null)
 const isSavingAiPlan = ref(false)
+// 모바일 하단 시트를 펼침/접힘 상태로 토글한다(디자인 전용, 검색·지도 로직과 무관).
+const isSheetExpanded = ref(false)
 const isAiCandidateLoading = ref(false)
 const isInitializingRegion = ref(false)
 const hasInitializedRegion = ref(false)
@@ -1465,6 +1486,9 @@ onUnmounted(() => {
   font-weight: 600;
   z-index: 1;
 }
+.sheet-handle {
+  display: none;
+}
 .side-panel {
   position: absolute;
   top: 16px;
@@ -1565,11 +1589,64 @@ onUnmounted(() => {
   padding: 0;
 }
 @media (max-width: 767.98px) {
+  /* 모바일 브라우저 UI를 고려해 동적 뷰포트 높이 사용 */
+  #map-container {
+    height: calc(100dvh - 64px);
+  }
+
+  /* 모바일: 지도를 가리지 않도록 패널을 하단 시트로 전환 */
   .side-panel {
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-height: calc(100% - 24px);
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 28px rgba(25, 31, 40, 0.16);
+    transition: max-height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* 펼치면 목록을 더 넓게 볼 수 있게 시트를 키운다 */
+  .side-panel.sheet-expanded {
+    max-height: 86vh;
+  }
+
+  /* 시트 상단 그랩 핸들(탭하면 펼침/접힘) */
+  .sheet-handle {
+    position: relative;
+    display: block;
+    flex-shrink: 0;
+    width: 100%;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .sheet-handle::before {
+    content: '';
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--et-gray-300);
+    transform: translateX(-50%);
+    transition: background 0.18s ease;
+  }
+  .sheet-handle:hover::before {
+    background: var(--et-gray-400);
+  }
+
+  .ai-timeline-panel {
+    width: 100%;
+    padding: 0 16px 16px;
+    border-radius: 16px 16px 0 0;
   }
 }
 :deep(.customoverlay) {

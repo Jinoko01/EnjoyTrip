@@ -14,6 +14,7 @@ export interface Board {
   boardNo: number
   title: string
   content?: string
+  category?: string // 백엔드 board.category — 여행후기/질문/추천/자유
   userId?: string
   authorName: string
   hit: number

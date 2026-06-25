@@ -5,7 +5,7 @@ import api from '@/api'
 import { useSchedules, type Schedule } from '@/composables/useSchedules'
 import {
   BOARD_WRITE_CATEGORIES,
-  deriveBoardCategory,
+  normalizeBoardCategory,
   placeholderGradient,
   type BoardCategory,
 } from '@/utils/boardPresentation'
@@ -22,7 +22,7 @@ const editBoardNo = computed(() => {
 const isEdit = computed(() => editBoardNo.value !== null)
 
 const form = ref({ title: '', content: '' })
-// 카테고리는 백엔드에 저장되지 않는 프론트 전용 선택값이다.
+// 선택한 카테고리는 백엔드 board.category로 저장된다.
 const category = ref<BoardCategory>('여행후기')
 const sharedSchedule = ref<LinkedSchedule | null>(null)
 const submitting = ref(false)
@@ -84,6 +84,7 @@ function buildFormData() {
   const fd = new FormData()
   fd.append('title', form.value.title.trim())
   fd.append('content', form.value.content.trim())
+  fd.append('category', category.value)
   if (sharedSchedule.value) fd.append('scheduleId', String(sharedSchedule.value.scheduleId))
   // 사진은 다중 파트(multipart)로 전송한다. 수정 시 유지할 기존 사진은 keepImageUrls로 보낸다.
   if (isEdit.value) existingImages.value.forEach((url) => fd.append('keepImageUrls', url))
@@ -115,7 +116,7 @@ onMounted(async () => {
   try {
     const res = await api.get<Board>(`/board/${editBoardNo.value}`)
     form.value = { title: res.data.title, content: res.data.content ?? '' }
-    category.value = deriveBoardCategory(res.data.boardNo)
+    category.value = normalizeBoardCategory(res.data.category)
     sharedSchedule.value = res.data.linkedSchedule ?? null
     existingImages.value = res.data.imageUrls ?? []
   } catch {

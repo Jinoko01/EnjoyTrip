@@ -1,8 +1,7 @@
 // 커뮤니티(게시판) 화면 표시용 헬퍼.
 //
-// 백엔드 board 테이블에는 카테고리·썸네일 이미지가 없다. 디자인의 카테고리 탭/뱃지와
-// 이미지 영역을 살리기 위해, 글 번호에서 "결정적으로" 카테고리와 색상 플레이스홀더를
-// 파생한다. 저장되지 않는 프론트 전용 표현이며, 같은 글은 항상 같은 값으로 보인다.
+// 카테고리는 백엔드 board.category 컬럼에 저장된다. 썸네일 이미지가 없는 글은
+// 색상 플레이스홀더로 대체한다(글 번호에서 "결정적으로" 파생 — 같은 글은 항상 같은 색).
 
 export const BOARD_CATEGORIES = ['여행후기', '질문', '추천', '자유'] as const
 export type BoardCategory = (typeof BOARD_CATEGORIES)[number]
@@ -12,12 +11,14 @@ export type BoardCategoryFilter = '전체' | BoardCategory
 // 목록 상단 필터 탭 (디자인과 동일하게 '자유'는 탭에 노출하지 않고 '전체'에 포함)
 export const BOARD_CATEGORY_TABS: BoardCategoryFilter[] = ['전체', '여행후기', '질문', '추천']
 
-// 글쓰기에서 선택 가능한 카테고리 (저장되지 않는 프론트 전용 값)
+// 글쓰기에서 선택 가능한 카테고리
 export const BOARD_WRITE_CATEGORIES: BoardCategory[] = ['여행후기', '질문', '추천', '자유']
 
-/** 글 번호로부터 표시용 카테고리를 결정적으로 파생한다. */
-export function deriveBoardCategory(boardNo: number): BoardCategory {
-  return BOARD_CATEGORIES[Math.abs(boardNo) % BOARD_CATEGORIES.length]
+/** 응답의 카테고리 값을 검증한다. 비거나 알 수 없는 값은 기본값(자유)으로 보정한다. */
+export function normalizeBoardCategory(value: string | undefined | null): BoardCategory {
+  return (BOARD_CATEGORIES as readonly string[]).includes(value ?? '')
+    ? (value as BoardCategory)
+    : '자유'
 }
 
 export interface BadgeStyle {

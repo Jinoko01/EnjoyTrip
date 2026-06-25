@@ -224,9 +224,22 @@ main {
   background: var(--et-blue-wash);
 }
 .navbar-toggler {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   border: 0;
   padding: 6px;
   box-shadow: none !important;
+}
+
+/* 모바일 드로어 닫기 버튼·배경: 데스크톱에서는 숨김 */
+.drawer-close {
+  display: none;
+}
+.nav-backdrop {
+  display: none;
 }
 
 .btn {
@@ -644,8 +657,49 @@ main {
   .navbar {
     padding: 0 16px;
   }
+
+  /* 모바일: 우측에서 슬라이드되는 드로어 메뉴 */
   .navbar-collapse {
-    padding: 8px 0 16px;
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 1045;
+    display: block !important;
+    width: min(320px, 84vw);
+    height: 100dvh;
+    padding: 64px 18px 28px;
+    background: #fff;
+    box-shadow: -10px 0 30px rgba(25, 31, 40, 0.16);
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .navbar-collapse.show {
+    transform: translateX(0);
+  }
+  .drawer-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--et-gray-100);
+    color: var(--et-gray-700);
+    font-size: 16px;
+  }
+  .nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    display: block;
+    background: rgba(25, 31, 40, 0.45);
+    animation: navBackdropFade 0.2s ease;
   }
   .nav-search {
     order: 3;
@@ -656,9 +710,37 @@ main {
   }
   .navbar-nav {
     align-items: stretch !important;
+    gap: 4px;
+  }
+  .navbar-collapse .nav-link {
+    padding: 13px 12px !important;
+    font-size: 15px;
+  }
+  .navbar-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px;
+    margin: 14px 0 0 0 !important;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-default);
+  }
+  .navbar-actions .btn {
+    width: 100%;
+    padding-block: 11px;
+  }
+  .navbar-actions .nav-link {
+    text-align: center;
   }
   .navbar .ms-lg-3 {
     margin-left: 0 !important;
+  }
+  @keyframes navBackdropFade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   .hero-section {
     min-height: 390px;
